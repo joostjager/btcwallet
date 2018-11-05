@@ -1378,7 +1378,8 @@ func sendPairs(w *wallet.Wallet, amounts map[string]btcutil.Amount,
 	if err != nil {
 		return "", err
 	}
-	txHash, err := w.SendOutputs(outputs, account, minconf, feeSatPerKb)
+	txHash, _, err := w.SendOutputs(
+		outputs, account, minconf, feeSatPerKb)
 	if err != nil {
 		if err == txrules.ErrAmountNegative {
 			return "", ErrNeedPositiveAmount

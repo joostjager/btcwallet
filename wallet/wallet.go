@@ -3078,16 +3078,16 @@ func (w *Wallet) TotalReceivedForAddr(addr btcutil.Address, minConf int32) (btcu
 	return amount, err
 }
 
-// SendOutputs creates and sends payment transactions. It returns the
-// transaction hash upon success.
+// SendOutputs creates and sends payment transactions. Upon success, it returns
+// the transaction hash and a list of tx output indices for the outputs.
 func (w *Wallet) SendOutputs(outputs []*wire.TxOut, account uint32,
-	minconf int32, satPerKb btcutil.Amount) (*chainhash.Hash, error) {
+	minconf int32, satPerKb btcutil.Amount) (*chainhash.Hash, []int, error) {
 
 	// Ensure the outputs to be created adhere to the network's consensus
 	// rules.
 	for _, output := range outputs {
 		if err := txrules.CheckOutput(output, satPerKb); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -3097,10 +3097,15 @@ func (w *Wallet) SendOutputs(outputs []*wire.TxOut, account uint32,
 	// been confirmed.
 	createdTx, err := w.CreateSimpleTx(account, outputs, minconf, satPerKb)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return w.publishTransaction(createdTx.Tx)
+	txHash, err := w.publishTransaction(createdTx.Tx)
+	if err != nil {
+		return txHash, nil, err
+	}
+
+	return txHash, createdTx.OutputIndices, err
 }
 
 // SignatureError records the underlying error when validating a transaction

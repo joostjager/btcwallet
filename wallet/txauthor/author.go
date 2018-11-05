@@ -52,6 +52,7 @@ type AuthoredTx struct {
 	PrevInputValues []btcutil.Amount
 	TotalInput      btcutil.Amount
 	ChangeIndex     int // negative if no change
+	OutputIndices   []int
 }
 
 // ChangeSource provides P2PKH change output scripts for transaction creation.
@@ -142,12 +143,18 @@ func NewUnsignedTransaction(outputs []*wire.TxOut, relayFeePerKb btcutil.Amount,
 			changeIndex = l
 		}
 
+		outputIndices := make([]int, len(outputs))
+		for i := 0; i < len(outputs); i++ {
+			outputIndices[i] = i
+		}
+
 		return &AuthoredTx{
 			Tx:              unsignedTransaction,
 			PrevScripts:     scripts,
 			PrevInputValues: inputValues,
 			TotalInput:      inputAmount,
 			ChangeIndex:     changeIndex,
+			OutputIndices:   outputIndices,
 		}, nil
 	}
 }
@@ -164,7 +171,12 @@ func RandomizeOutputPosition(outputs []*wire.TxOut, index int) int {
 // RandomizeChangePosition randomizes the position of an authored transaction's
 // change output.  This should be done before signing.
 func (tx *AuthoredTx) RandomizeChangePosition() {
-	tx.ChangeIndex = RandomizeOutputPosition(tx.Tx.TxOut, tx.ChangeIndex)
+	outputs := tx.Tx.TxOut
+	r := cprng.Int31n(int32(len(outputs)))
+
+	outputs[r], outputs[tx.ChangeIndex] = outputs[tx.ChangeIndex], outputs[r]
+	tx.OutputIndices[r] = tx.ChangeIndex
+	tx.ChangeIndex = int(r)
 }
 
 // SecretsSource provides private keys and redeem scripts necessary for
