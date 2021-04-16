@@ -381,6 +381,7 @@ func openDB(dbPath string, noFreelistSync bool,
 		NoFreelistSync: noFreelistSync,
 		FreelistType:   bbolt.FreelistMapType,
 		Timeout:        timeout,
+		NoSync:         true,
 	}
 
 	boltDB, err := bbolt.Open(dbPath, 0600, options)
